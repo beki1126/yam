@@ -1,0 +1,22 @@
+# ----------------------------------------------------------------------
+# Ашиглахгүй байх шаардлагатай хавтас/файлууд
+# ----------------------------------------------------------------------
+
+# Node Dependencies (npm install-аар сэргээгддэг)
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Нууц мэдээлэл агуулсан файлууд (API түлхүүр, DB URI гэх мэт)
+.env
+client/.env
+server/.env
+
+# Client (React)-ийн Build хавтас
+client/build/
+client/dist/
+
+# Бусад
+.DS_Store
+*.log
+npm-debug.log*
