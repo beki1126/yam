@@ -1,20 +1,47 @@
 // ============================================
-// DELETEMODAL.JSX - Clean Minimal Design
+// DELETEMODAL.JSX - Double Confirmation (Same Colors)
 // ============================================
 
-import React from "react";
+import React, { useState } from "react";
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Typography, Box, IconButton, Fade
 } from "@mui/material";
-import { Close, DeleteOutline, WarningAmber } from "@mui/icons-material";
+import { Close, DeleteOutline } from "@mui/icons-material";
 
 export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
+    const [isConfirming, setIsConfirming] = useState(false);
+
+    // Modal хаагдахад reset хийх
+    const handleClose = () => {
+        setIsConfirming(false);
+        onClose();
+    };
+
+    // Эхний "Устгах" товч дарах
+    const handleFirstDelete = () => {
+        setIsConfirming(true);
+    };
+
+    // Эцсийн баталгаажуулалт
+    const handleFinalConfirm = () => {
+        setIsConfirming(false);
+        onConfirm();
+    };
+
+    // Буцах
+    const handleCancel = () => {
+        if (isConfirming) {
+            setIsConfirming(false);
+        } else {
+            handleClose();
+        }
+    };
 
     return (
         <Dialog
             open={open}
-            onClose={onClose}
+            onClose={handleClose}
             maxWidth="xs"
             fullWidth
             TransitionComponent={Fade}
@@ -57,7 +84,7 @@ export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
                     </Typography>
                 </Box>
                 <IconButton
-                    onClick={onClose}
+                    onClick={handleClose}
                     size="small"
                     sx={{
                         color: "#999",
@@ -122,16 +149,42 @@ export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
                         </Box>
                     </Box>
 
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            color: "#999",
-                            fontSize: "0.8rem",
-                            fontStyle: "italic"
-                        }}
-                    >
-                        Энэ үйлдлийг буцаах боломжгүй.
-                    </Typography>
+                    {isConfirming && (
+                        <Box
+                            sx={{
+                                bgcolor: "#fafafa",
+                                border: "1px solid #e8e8e8",
+                                borderRadius: 2,
+                                p: 2,
+                                mb: 2
+                            }}
+                        >
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: "#666",
+                                    fontSize: "0.875rem",
+                                    fontWeight: 600,
+                                    textAlign: "center"
+                                }}
+                            >
+                                ⚠️ Та итгэлтэй байна уу? Энэ үйлдлийг буцаах боломжгүй.
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {!isConfirming && (
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: "#999",
+                                fontSize: "0.8rem",
+                                fontStyle: "italic"
+                            }}
+                        >
+                            Энэ үйлдлийг буцаах боломжгүй.
+                        </Typography>
+                    )}
                 </Box>
             </DialogContent>
 
@@ -145,7 +198,7 @@ export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
                 }}
             >
                 <Button
-                    onClick={onClose}
+                    onClick={handleCancel}
                     fullWidth
                     sx={{
                         borderRadius: 2,
@@ -160,11 +213,11 @@ export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
                         }
                     }}
                 >
-                    Цуцлах
+                    {isConfirming ? "Буцах" : "Цуцлах"}
                 </Button>
 
                 <Button
-                    onClick={onConfirm}
+                    onClick={isConfirming ? handleFinalConfirm : handleFirstDelete}
                     fullWidth
                     sx={{
                         borderRadius: 2,
@@ -179,7 +232,7 @@ export default function DeleteModal({ open, orgName, onClose, onConfirm }) {
                         }
                     }}
                 >
-                    Устгах
+                    {isConfirming ? "Тийм, устга" : "Устгах"}
                 </Button>
             </DialogActions>
 
