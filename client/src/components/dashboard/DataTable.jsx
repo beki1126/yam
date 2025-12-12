@@ -157,8 +157,9 @@ export default function DataTable({
                                             }}
                                         >
                                             {col.key === "id" ? (
+                                                // ✅ ӨӨРЧЛӨЛТ: index + 1 ашиглан 1-ээс эхлүүлэх
                                                 <Box sx={{ textAlign: "center", fontWeight: 600, color: PRIMARY_BLUE }}>
-                                                    {row.id}
+                                                    {index + 1}
                                                 </Box>
                                             ) : col.key === "org_name" ? ( 
                                                 <Tooltip title={row.org_name} placement="top">
