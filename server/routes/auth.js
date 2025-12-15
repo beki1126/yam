@@ -60,7 +60,7 @@ const verifyToken = async (req, res, next) => {
 // ================================================================
 
 // ====================================
-// POST: Login with 2FA
+// POST: Login WITHOUT 2FA (Simplified)
 // Route: /api/auth/login
 // ====================================
 router.post('/login', async (req, res) => {
@@ -106,100 +106,32 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // 🔐 2FA: Generate 6-digit OTP code
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 600000); // 10 minutes
-        
-        // Save OTP to database
-        await db.query(
-            `UPDATE admins 
-             SET otp_code = ?, 
-                 otp_expires = ? 
-             WHERE id = ?`,
-            [otpCode, otpExpires, user.id]
+        // ✅ 2FA УНТРААСАН - Шууд JWT token үүсгэх
+        const token = jwt.sign(
+            { 
+                id: user.id, 
+                email: user.email,
+                role: user.role 
+            },
+            process.env.JWT_SECRET || 'supersecretkey',
+            { expiresIn: '24h' }
         );
         
-        // Send OTP email
-        const mailOptions = {
-            from: '"МЕА Систем" <' + process.env.EMAIL_USER + '>',
-            to: user.email,
-            subject: 'Баталгаажуулах код - МЕА Систем',
-            html: `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-        .header { background: linear-gradient(135deg, #053B50 0%, #007BFF 100%); color: white; padding: 40px 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 40px 30px; background: #f9f9f9; }
-        .otp-box { background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; margin: 30px 0; box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3); }
-        .otp-code { font-size: 48px; font-weight: bold; letter-spacing: 8px; margin: 10px 0; font-family: 'Courier New', monospace; }
-        .info-box { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .footer { text-align: center; padding: 30px; background: #f5f5f5; color: #666; font-size: 13px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔐 Баталгаажуулах Код</h1>
-        </div>
-        <div class="content">
-            <p style="font-size: 16px; margin-bottom: 10px;">
-                Сайн байна уу, <strong>${user.full_name || 'Хэрэглэгч'}</strong>!
-            </p>
-            <p>Та МЕА системд нэвтрэх гэж байна. Доорх баталгаажуулах кодыг оруулна уу:</p>
-            <div class="otp-box">
-                <p style="margin: 0; font-size: 14px; opacity: 0.9;">Таны баталгаажуулах код:</p>
-                <div class="otp-code">${otpCode}</div>
-                <p style="margin: 0; font-size: 12px; opacity: 0.8;">Кодыг системд оруулна уу</p>
-            </div>
-            <div class="info-box">
-                <p style="margin: 0; font-size: 14px;">
-                    <strong>📌 Анхаар:</strong> Энэ код <strong>10 минутын</strong> дараа хүчингүй болно.
-                </p>
-            </div>
-            <div class="warning">
-                <p style="margin: 0; font-size: 14px;">
-                    <strong>⚠️ Аюулгүйн анхааруулга:</strong><br>
-                    Хэрэв та энэ кодыг хүсээгүй бол энэ имэйлийг үл тоомсорлоно уу.
-                </p>
-            </div>
-            <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                Хүндэтгэсэн,<br><strong>МЕА Систем</strong>
-            </p>
-        </div>
-        <div class="footer">
-            <p style="margin: 5px 0;">© 2025 Мэдээллийн Аюулгүй Байдлын Аудитын Систем</p>
-        </div>
-    </div>
-</body>
-</html>
-            `
-        };
-        
-        await transporter.sendMail(mailOptions);
-        
-        console.log(`✅ OTP sent to: ${user.email}, Code: ${otpCode}`);
-        
-        // Update last login attempt
+        // Update last login
         await db.query('UPDATE admins SET last_login = NOW() WHERE id = ?', [user.id]);
         
-        // Generate temporary token
-        const tempToken = jwt.sign(
-            { userId: user.id, email: user.email, type: 'otp_verify' },
-            process.env.JWT_SECRET || 'supersecretkey',
-            { expiresIn: '10m' }
-        );
+        console.log(`✅ User logged in (without 2FA): ${user.email}`);
         
         res.json({
             success: true,
-            pending_2fa: true,
-            tempToken: tempToken,
-            message: 'Баталгаажуулах кодыг таны имэйл хаяг руу илгээлээ.'
+            token: token,
+            user: {
+                id: user.id,
+                email: user.email,
+                full_name: user.full_name,
+                role: user.role
+            },
+            message: 'Амжилттай нэвтэрлээ.'
         });
 
     } catch (e) {
@@ -213,194 +145,25 @@ router.post('/login', async (req, res) => {
 });
 
 // ====================================
-// POST: Verify OTP
+// POST: Verify OTP (DISABLED - kept for compatibility)
 // Route: /api/auth/verify-otp
 // ====================================
 router.post('/verify-otp', async (req, res) => {
-    try {
-        const { email, otp_code, temp_token } = req.body;
-        
-        if (!email || !otp_code) {
-            return res.status(400).json({
-                success: false,
-                message: 'Имэйл болон код оруулна уу.'
-            });
-        }
-        
-        // Verify temp token
-        try {
-            const decoded = jwt.verify(temp_token, process.env.JWT_SECRET || 'supersecretkey');
-            if (decoded.type !== 'otp_verify' || decoded.email !== email) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Токен хүчингүй байна.'
-                });
-            }
-        } catch (err) {
-            return res.status(401).json({
-                success: false,
-                message: 'Токен хүчингүй эсвэл хугацаа дууссан.'
-            });
-        }
-        
-        // Find user and verify OTP
-        const [userRows] = await db.query(
-            `SELECT id, email, full_name, role 
-             FROM admins 
-             WHERE email = ? 
-             AND otp_code = ? 
-             AND otp_expires > NOW()`,
-            [email, otp_code]
-        );
-        
-        if (userRows.length === 0) {
-            return res.status(401).json({
-                success: false,
-                message: 'Код буруу эсвэл хугацаа дууссан байна.'
-            });
-        }
-        
-        const user = userRows[0];
-        
-        // Clear OTP
-        await db.query(
-            `UPDATE admins 
-             SET otp_code = NULL, 
-                 otp_expires = NULL 
-             WHERE id = ?`,
-            [user.id]
-        );
-        
-        // Generate JWT token
-        const token = jwt.sign(
-            { 
-                id: user.id, 
-                email: user.email,
-                role: user.role 
-            },
-            process.env.JWT_SECRET || 'supersecretkey',
-            { expiresIn: '24h' }
-        );
-        
-        console.log(`✅ User logged in: ${user.email}`);
-        
-        res.json({
-            success: true,
-            token: token,
-            user: {
-                id: user.id,
-                email: user.email,
-                full_name: user.full_name,
-                role: user.role
-            },
-            message: 'Амжилттай нэвтэрлээ.'
-        });
-        
-    } catch (error) {
-        console.error('Verify OTP error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Баталгаажуулах үйл явц алдаатай.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+    res.status(400).json({
+        success: false,
+        message: '2FA идэвхгүй байна.'
+    });
 });
 
 // ====================================
-// POST: Resend OTP
+// POST: Resend OTP (DISABLED - kept for compatibility)
 // Route: /api/auth/resend-otp
 // ====================================
 router.post('/resend-otp', async (req, res) => {
-    try {
-        const { email } = req.body;
-        
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message: 'Имэйл хаяг оруулна уу.'
-            });
-        }
-        
-        // Find user
-        const [userRows] = await db.query(
-            'SELECT id, email, full_name FROM admins WHERE email = ?',
-            [email]
-        );
-        
-        if (userRows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Хэрэглэгч олдсонгүй.'
-            });
-        }
-        
-        const user = userRows[0];
-        
-        // Generate new OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 600000); // 10 minutes
-        
-        // Update OTP
-        await db.query(
-            `UPDATE admins 
-             SET otp_code = ?, 
-                 otp_expires = ? 
-             WHERE id = ?`,
-            [otpCode, otpExpires, user.id]
-        );
-        
-        // Send email
-        const mailOptions = {
-            from: '"МЕА Систем" <' + process.env.EMAIL_USER + '>',
-            to: user.email,
-            subject: 'Баталгаажуулах код (Дахин) - МЕА Систем',
-            html: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8">
-<style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-    .header { background: linear-gradient(135deg, #053B50 0%, #007BFF 100%); color: white; padding: 30px; text-align: center; }
-    .content { padding: 30px; background: #f9f9f9; }
-    .otp-box { background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0; }
-    .otp-code { font-size: 48px; font-weight: bold; letter-spacing: 8px; font-family: monospace; }
-    .footer { text-align: center; padding: 20px; background: #f5f5f5; color: #666; font-size: 13px; }
-</style>
-</head>
-<body>
-    <div class="container">
-        <div class="header"><h1>🔐 Шинэ Код</h1></div>
-        <div class="content">
-            <p>Сайн байна уу, <strong>${user.full_name}</strong>!</p>
-            <p>Таны шинэ баталгаажуулах код:</p>
-            <div class="otp-box"><div class="otp-code">${otpCode}</div></div>
-            <p style="color: #666;">📌 10 минутын дараа хүчингүй болно.</p>
-        </div>
-        <div class="footer"><p>© 2025 МЕА Систем</p></div>
-    </div>
-</body>
-</html>
-            `
-        };
-        
-        await transporter.sendMail(mailOptions);
-        
-        console.log(`✅ OTP resent to: ${user.email}, Code: ${otpCode}`);
-        
-        res.json({
-            success: true,
-            message: 'Шинэ баталгаажуулах код илгээгдлээ.'
-        });
-        
-    } catch (error) {
-        console.error('Resend OTP error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Код дахин илгээхэд алдаа гарлаа.',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+    res.status(400).json({
+        success: false,
+        message: '2FA идэвхгүй байна.'
+    });
 });
 
 // ================================================================
@@ -479,8 +242,16 @@ router.post('/forgot-password', async (req, res) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: 'Сэргээх линк таны имэйл рүү амжилттай илгээгдлээ.' });
+        try {
+            await transporter.sendMail(mailOptions);
+            res.json({ success: true, message: 'Сэргээх линк таны имэйл рүү амжилттай илгээгдлээ.' });
+        } catch (emailError) {
+            console.error('Forgot password email error:', emailError);
+            res.status(500).json({ 
+                success: false,
+                message: 'Имэйл илгээхэд алдаа гарлаа. Дараа дахин оролдоно уу.'
+            });
+        }
 
     } catch (e) {
         console.error('Forgot password error:', e);
@@ -561,7 +332,6 @@ router.get("/check", (req, res) => {
     }
 });
 
-
 // ====================================
 // POST: Change Password (Self)
 // Route: /api/auth/change-password
@@ -634,7 +404,8 @@ router.post('/change-password', verifyToken, async (req, res) => {
         });
     }
 });
+
 // ================================================================
 // EXPORT
 // ================================================================
-module.exports = router;
+module.exports = router;s
