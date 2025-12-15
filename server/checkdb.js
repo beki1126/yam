@@ -47,5 +47,5 @@ async function checkDatabase() {
         process.exit(1);
     }
 }
-
+//ch
 checkDatabase();
