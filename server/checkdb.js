@@ -37,7 +37,7 @@ async function checkDatabase() {
                 console.log(`   • ${col.Field.padEnd(25)} ${col.Type.padEnd(20)} ${nullable} ${key}`);
             });
         }
-
+//checkdb
         connection.release();
         await pool.end();
         console.log("\n✅ Шалгалт дууслаа!");
