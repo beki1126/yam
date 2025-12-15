@@ -1,8 +1,9 @@
-// src/api.js эсвэл frontend/src/api.js
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://192.168.10.20:3000/api',
+    baseURL: `${API_BASE_URL}/api`,  // /api автоматаар нэмэх
     headers: {
         'Content-Type': 'application/json'
     }
@@ -17,3 +18,21 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+```
+
+Railway Variables:
+```
+VITE_API_URL=https://yam-production-c00d.up.railway.app
+```
+
+(Төгсгөлд `/api` БАЙХГҮЙ)
+
+Git push → Redeploy
+
+---
+
+## Би Арга 1-ийг санал болгож байна (хурдан):
+
+Railway Variables:
+```
+VITE_API_URL=https://yam-production-c00d.up.railway.app/api
