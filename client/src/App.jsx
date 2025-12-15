@@ -117,7 +117,8 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* ✅ ӨӨРЧЛӨЛТ: Шууд dashboard руу чиглүүлэх */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
       <Route 
         path="/login"
